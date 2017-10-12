@@ -17,9 +17,11 @@
 package rx_activity_result2;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.os.Bundle;
+
 import io.reactivex.functions.Action;
 
 public class HolderActivity extends Activity {
@@ -27,9 +29,12 @@ public class HolderActivity extends Activity {
     private OnPreResult onPreResult;
     private OnResult onResult;
     private int resultCode;
+    private int requestCode;
     private Intent data;
+    private static int FAILED_REQUEST_CODE = -909;
 
-    @Override protected void onCreate(Bundle savedInstanceState) {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         if (request == null) {
@@ -48,7 +53,13 @@ public class HolderActivity extends Activity {
             if (requestIntentSender.getOptions() == null) startIntentSender(requestIntentSender);
             else startIntentSenderWithOptions(requestIntentSender);
         } else {
-            startActivityForResult(request.intent(), 0);
+            try {
+                startActivityForResult(request.intent(), 0);
+            } catch (ActivityNotFoundException e) {
+                if (onResult != null) {
+                    onResult.error(e);
+                }
+            }
         }
     }
 
@@ -59,7 +70,7 @@ public class HolderActivity extends Activity {
                     requestIntentSender.getFlagsValues(), requestIntentSender.getExtraFlags());
         } catch (IntentSender.SendIntentException exception) {
             exception.printStackTrace();
-            onResult.response(RESULT_CANCELED, null);
+            onResult.response(FAILED_REQUEST_CODE, RESULT_CANCELED, null);
         }
     }
 
@@ -70,32 +81,36 @@ public class HolderActivity extends Activity {
                     requestIntentSender.getFlagsValues(), requestIntentSender.getExtraFlags(), requestIntentSender.getOptions());
         } catch (IntentSender.SendIntentException exception) {
             exception.printStackTrace();
-            onResult.response(RESULT_CANCELED, null);
+            onResult.response(FAILED_REQUEST_CODE, RESULT_CANCELED, null);
         }
     }
 
-    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         this.resultCode = resultCode;
+        this.requestCode = requestCode;
         this.data = data;
 
         if (this.onPreResult != null) {
-            this.onPreResult.response(resultCode, data)
-                .doOnComplete(new Action() {
-                    @Override public void run() throws Exception {
-                        finish();
-                    }
-                })
-                .subscribe();
+            this.onPreResult.response(requestCode, resultCode, data)
+                    .doOnComplete(new Action() {
+                        @Override
+                        public void run() throws Exception {
+                            finish();
+                        }
+                    })
+                    .subscribe();
         } else {
             finish();
         }
     }
 
-    @Override protected void onDestroy() {
+    @Override
+    protected void onDestroy() {
         super.onDestroy();
         if (onResult != null)
-            onResult.response(resultCode, data);
+            onResult.response(requestCode, resultCode, data);
     }
 
     static void setRequest(Request aRequest) {

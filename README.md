@@ -26,7 +26,7 @@ allprojects {
 And add next dependencies in the build.gradle of the module:
 ```gradle
 dependencies {
-    compile 'com.github.VictorAlbertos:RxActivityResult:0.4.1-2.x'
+    compile 'com.github.VictorAlbertos:RxActivityResult:0.4.5-2.x'
     compile 'io.reactivex.rxjava2:rxjava:2.0.5'
 }
 ```
@@ -57,6 +57,13 @@ RxActivityResult.on(this).startIntent(takePhoto)
         .subscribe(result -> {
             Intent data = result.data();
             int resultCode = result.resultCode();
+            // the requestCode using which the activity is started can be received here.
+            int requestCode = result.requestCode();
+
+            if(requestCode == YourActivity.YOUR_REQUEST_CODE)
+            {
+                // Do Something
+            }
 
             if (resultCode == RESULT_OK) {
                 result.targetUI().showImage(data);
@@ -83,7 +90,7 @@ RxActivityResult.on(this).startIntentSender(pendingIntent.getIntentSender(), new
 ```
 
 ## Examples
-There is an example of RxActivityResult using both activity and fragment in the [app module](https://github.com/VictorAlbertos/RxActivityResult/tree/master/app)
+There is an example of RxActivityResult using both activity and fragment in the [app module](https://github.com/VictorAlbertos/RxActivityResult/tree/2.x/app)
 
 ## Author
 **Víctor Albertos**
